@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Regpack First Week File List v4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f7f7f8;color:#18181b;margin:0}
+main{max-width:1180px;margin:auto;padding:28px 16px 52px}
+h1{margin:0 0 8px;font-size:30px;letter-spacing:-.03em}
+h2{margin:0 0 8px}
+p{color:#666672;margin:0 0 12px}
+.panel{background:#fff;border:1px solid #dddde3;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 8px 24px rgba(0,0,0,.04)}
+.drop{border:2px dashed #dddde3;border-radius:14px;padding:24px;text-align:center;background:#fbfbfc}
+.drop.over{border-color:#1f6feb;background:#e8f0ff}
+.controls,.settings{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px}
+.field{min-width:200px;flex:1}
+label{display:block;font-size:13px;font-weight:700;color:#666672}
+input,select{width:100%;box-sizing:border-box;margin-top:5px;padding:9px 10px;border:1px solid #dddde3;border-radius:10px;background:#fff}
+button{border:1px solid #dddde3;background:#fff;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+button.primary{background:#1f6feb;color:#fff;border-color:#1f6feb}
+button:disabled{opacity:.45;cursor:not-allowed}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.card{background:#fff;border:1px solid #dddde3;border-radius:14px;padding:14px}
+.card .label{font-size:13px;color:#666672}
+.card .num{font-size:32px;font-weight:850;letter-spacing:-.04em}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+th,td{border-bottom:1px solid #dddde3;padding:9px 10px;text-align:left;vertical-align:top;font-size:14px}
+th{background:#f1f1f4;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#4b4b55}
+td.num{text-align:right}
+.hidden{display:none}
+.week{border:1px solid #dddde3;border-radius:14px;overflow:hidden;margin:14px 0;background:#fff}
+.week h3{margin:0;padding:12px 14px;background:#f1f1f4;border-bottom:1px solid #dddde3}
+.small{font-size:13px;color:#666672}
+.warn{color:#b42318;font-weight:700}
+.ok{color:#0f7a3a;font-weight:700}
+code{background:#f0f0f2;border-radius:6px;padding:2px 5px}
+.pill{display:inline-block;border:1px solid #dddde3;border-radius:999px;padding:2px 8px;font-size:12px;background:#fafafa;margin:0 4px 4px 0}
+.scroll{max-height:600px;overflow:auto}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.no-print{display:none!important}body{background:#fff}main{max-width:none;padding:0}.panel,.card,.week{box-shadow:none;border-color:#999}th{position:static}}
+</style>
+</head>
+<body>
+<main>
+<h1>Regpack First-Week File List <span style="font-size:14px;color:#666672;font-weight:600">v4</span></h1>
+<p>Import the Regpack CSV export that was filtered for Week 1 ordered and locked OR Week 2 ordered and locked, etc. This app lists each child under the first non-waitlisted summer camp week in their cart list.</p>
+<p class="small">Built for exports with columns like <code>Child's First Name</code>, <code>Child's Last Name</code>, and <code>Child / Sub-unit cart list</code>. Everything runs locally in your browser.</p>
+
+<section class="panel no-print">
+  <div id="drop" class="drop">
+    <strong>Drop CSV files here</strong>
+    <p>or choose files below. Multiple location/project exports are okay.</p>
+    <input id="files" type="file" accept=".csv,text/csv" multiple>
+  </div>
+
+  <div class="settings">
+    <div class="field">
+      <label>New Registration Filter</label>
+      <select id="filter">
+        <option value="all">All children</option>
+        <option value="new">New registration only</option>
+        <option value="returning">Not new registration only</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>New Registration Keywords</label>
+      <input id="newWords" value="new registration fee,new registration,new reg">
+    </div>
+    <div class="field">
+      <label>Week Range</label>
+      <input id="weekRange" value="1-10">
+    </div>
+    <div class="field">
+      <label>Week Detection Mode</label>
+      <select id="weekMode">
+        <option value="nonwaitlisted">Count non-waitlisted weeks</option>
+        <option value="any">Count any week mentioned</option>
+        <option value="paidEvidence">Count weeks with paid/allocated/ACCB evidence</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings">
+    <div class="field">
+      <label>Duplicate Names</label>
+      <select id="dupes">
+        <option value="samefile">Merge same name in same file</option>
+        <option value="keep">Keep every row</option>
+        <option value="allfiles">Merge same name across files</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Location Label</label>
+      <select id="locationMode">
+        <option value="file">Use CSV file name</option>
+        <option value="blank">Leave blank</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Extra Ignore Keywords</label>
+      <input id="ignoreWords" value="">
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="rerun" class="primary" disabled>Reprocess</button>
+    <button id="clear" disabled>Clear</button>
+    <button id="downloadList" class="primary" disabled>Download first-week list CSV</button>
+    <button id="downloadSummary" disabled>Download summary CSV</button>
+    <button id="downloadAudit" disabled>Download audit CSV</button>
+    <button id="print" disabled>Print lists</button>
+  </div>
+  <p id="status" class="small"></p>
+</section>
+
+<section id="results" class="hidden">
+  <div class="cards">
+    <div class="card"><div class="label">Kids Listed</div><div id="listed" class="num">0</div></div>
+    <div class="card"><div class="label">New Reg</div><div id="newCount" class="num">0</div></div>
+    <div class="card"><div class="label">Not New</div><div id="returningCount" class="num">0</div></div>
+    <div class="card"><div class="label">No Valid Week</div><div id="noWeek" class="num">0</div></div>
+    <div class="card"><div class="label">Rows Read</div><div id="rowsRead" class="num">0</div></div>
+  </div>
+
+  <section class="panel">
+    <h2>Summary</h2>
+    <div id="summary"></div>
+  </section>
+
+  <section class="panel">
+    <h2>First-Week Lists</h2>
+    <p class="small">These are the kids who need files made that week because it is their first valid detected week in the export.</p>
+    <div id="weekLists"></div>
+  </section>
+
+  <section class="panel no-print">
+    <h2>Audit</h2>
+    <p class="small">Use this to check exactly which weeks were counted and which waitlisted weeks were ignored.</p>
+    <div id="audit" class="scroll"></div>
+  </section>
+</section>
+</main>
+
+<script>
+let rawRows=[], children=[], listedKids=[], summaryRows=[];
+
+const el=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const splitWords=s=>String(s||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+const fileLabel=s=>String(s||'').replace(/\.csv$/i,'');
+
+function parseCSV(text){
+  const rows=[]; let row=[], field='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(q){
+      if(c=='"'&&n=='"'){field+='"';i++}
+      else if(c=='"') q=false;
+      else field+=c;
+    } else {
+      if(c=='"') q=true;
+      else if(c==','){row.push(field);field=''}
+      else if(c=='\n'){row.push(field);rows.push(row);row=[];field=''}
+      else if(c!='\r') field+=c;
+    }
+  }
+  if(field.length||row.length){row.push(field);rows.push(row)}
+  return rows.filter(r=>r.some(c=>String(c).trim()));
+}
+
+function decodeEntities(s){
+  return String(s||'')
+    .replace(/&nbsp;/g,' ')
+    .replace(/&#39;/g,"'")
+    .replace(/&amp;/g,'&')
+    .replace(/&quot;/g,'"')
+    .replace(/&lt;/g,'<')
+    .replace(/&gt;/g,'>');
+}
+function cleanHeader(h){return decodeEntities(h).replace(/\s+/g,' ').trim()}
+function findCol(headers, tests){return headers.findIndex(h=>tests.some(t=>t.test(h)))}
+function hasAny(text, words){const s=String(text||'').toLowerCase(); return words.some(w=>s.includes(w))}
+function parseRange(s){
+  const m=String(s||'1-10').match(/(\d+)\s*-\s*(\d+)/);
+  if(!m) return [1,10];
+  return [parseInt(m[1]), parseInt(m[2])];
+}
+
+function weekSegments(text, minW, maxW){
+  const source=String(text||'');
+  const rx=/(?:Summer\s+Camp\s+)?Week\s*([0-9]{1,2})(?![0-9])/gi;
+  const matches=[];
+  let m;
+  while((m=rx.exec(source))!==null){
+    matches.push({week:parseInt(m[1],10), index:m.index});
+    if(m.index===rx.lastIndex) rx.lastIndex++;
+  }
+
+  const segments=[];
+  for(let i=0;i<matches.length;i++){
+    const week=matches[i].week;
+    if(!Number.isFinite(week)||week<minW||week>maxW) continue;
+    const start=matches[i].index;
+    const end=i+1<matches.length ? matches[i+1].index : source.length;
+    const segment=source.slice(start,end);
+    const normalized=segment.replace(/\s+/g,' ').trim();
+    const waitlisted=/Waitlisted/i.test(segment);
+    const paidEvidence=/Ordered\s*&\s*Paid|Paid\s*\$|Paid\s+on:|has\s+been\s+allocated|ACCB|no\s+payment\s+is\s+required|Therefore\s+no\s+payment\s+is\s+required/i.test(segment);
+    const orderedOnly=/Ordered\s+on:/i.test(segment) && !paidEvidence && !waitlisted;
+
+    segments.push({
+      week,
+      segment,
+      normalized,
+      waitlisted,
+      paidEvidence,
+      orderedOnly
+    });
+  }
+  return segments;
+}
+
+function validWeeksFrom(text, st){
+  const valid=new Set(), skipped=new Set(), statuses=[];
+  const segments=weekSegments(text, st.minW, st.maxW);
+
+  segments.forEach(s=>{
+    let include=false;
+    let status='';
+
+    if(st.weekMode==='any'){
+      include=true;
+      status=s.waitlisted ? 'mentioned/waitlisted' : 'mentioned';
+    } else if(st.weekMode==='paidEvidence'){
+      include=!s.waitlisted && s.paidEvidence;
+      status=s.waitlisted ? 'waitlisted ignored' : s.paidEvidence ? 'paid/allocated/ACCB evidence' : 'no payment evidence ignored';
+    } else {
+      include=!s.waitlisted;
+      status=s.waitlisted ? 'waitlisted ignored' : s.orderedOnly ? 'ordered/non-waitlisted' : s.paidEvidence ? 'paid/allocated/ACCB evidence' : 'non-waitlisted';
+    }
+
+    if(include) valid.add(s.week);
+    else skipped.add(s.week);
+
+    statuses.push({
+      week:s.week,
+      counted:include,
+      status,
+      preview:s.normalized.slice(0,160)
+    });
+  });
+
+  return {
+    valid:[...valid].sort((a,b)=>a-b),
+    skipped:[...skipped].sort((a,b)=>a-b),
+    statuses
+  };
+}
+
+function settings(){
+  const [minW,maxW]=parseRange(el('weekRange').value);
+  return {
+    minW,maxW,
+    filter:el('filter').value,
+    newWords:splitWords(el('newWords').value),
+    ignoreWords:splitWords(el('ignoreWords').value),
+    dupes:el('dupes').value,
+    locationMode:el('locationMode').value,
+    weekMode:el('weekMode').value
+  }
+}
+
+async function readFile(f){
+  return await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||''));r.onerror=()=>rej(r.error);r.readAsText(f)})
+}
+
+async function loadFiles(files){
+  rawRows=[];
+  const list=[...files].filter(f=>/\.csv$/i.test(f.name)||f.type==='text/csv'||!f.type);
+  if(!list.length){el('status').textContent='Please choose at least one CSV.';return}
+  el('status').textContent='Reading files...';
+
+  for(const f of list){
+    const rows=parseCSV(await readFile(f));
+    if(!rows.length) continue;
+    const headers=rows[0].map(cleanHeader);
+    const first=findCol(headers,[/child.*first/i,/first name/i,/^first$/i]);
+    const last=findCol(headers,[/child.*last/i,/last name/i,/^last$/i]);
+    const cart=findCol(headers,[/sub-unit cart list/i,/cart list/i,/cart contents/i,/cart/i]);
+
+    rows.slice(1).forEach((r,i)=>{
+      const all=r.join('\n');
+      rawRows.push({
+        file:f.name,
+        row:i+2,
+        first:first>=0?r[first]:'',
+        last:last>=0?r[last]:'',
+        cart:cart>=0?r[cart]:all,
+        all
+      });
+    });
+  }
+  process();
+}
+
+function process(){
+  const st=settings();
+  let rows=rawRows.map(r=>{
+    const txt=r.cart||r.all;
+    const extraIgnored=hasAny(txt,st.ignoreWords);
+    const weekInfo=extraIgnored ? {valid:[], skipped:[], statuses:[]} : validWeeksFrom(txt,st);
+    const first=String(r.first||'').trim();
+    const last=String(r.last||'').trim();
+    return {
+      file:r.file,
+      row:r.row,
+      first,
+      last,
+      location:st.locationMode==='file'?fileLabel(r.file):'',
+      weeks:weekInfo.valid,
+      skippedWeeks:weekInfo.skipped,
+      weekStatuses:weekInfo.statuses,
+      firstWeek:weekInfo.valid[0]||'',
+      newReg:hasAny(txt,st.newWords),
+      extraIgnored,
+      preview:String(txt||'').replace(/\s+/g,' ').trim().slice(0,220),
+      sources:[`${r.file} row ${r.row}`]
+    };
+  });
+
+  children=dedupe(rows,st.dupes);
+
+  listedKids=children.filter(c=>c.weeks.length).filter(c=>{
+    if(st.filter==='new') return c.newReg;
+    if(st.filter==='returning') return !c.newReg;
+    return true;
+  }).sort((a,b)=>(a.firstWeek-b.firstWeek)||a.location.localeCompare(b.location)||a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+
+  summaryRows=[];
+  for(let w=st.minW; w<=st.maxW; w++){
+    const kids=listedKids.filter(c=>c.firstWeek===w);
+    summaryRows.push({
+      week:w,
+      total:kids.length,
+      newReg:kids.filter(c=>c.newReg).length,
+      returning:kids.filter(c=>!c.newReg).length
+    });
+  }
+  render(st);
+}
+
+function dedupe(rows,mode){
+  if(mode==='keep') return rows;
+  const map=new Map();
+  rows.forEach(r=>{
+    const name=(r.first+'|'+r.last).toLowerCase();
+    const key=mode==='allfiles'?name:(r.file+'|'+name);
+    if(!map.has(key)) map.set(key,{...r});
+    else{
+      const e=map.get(key);
+      e.weeks=[...new Set([...e.weeks,...r.weeks])].sort((a,b)=>a-b);
+      e.skippedWeeks=[...new Set([...e.skippedWeeks,...r.skippedWeeks])].sort((a,b)=>a-b);
+      e.weekStatuses=[...e.weekStatuses,...r.weekStatuses];
+      e.firstWeek=e.weeks[0]||'';
+      e.newReg=e.newReg||r.newReg;
+      e.extraIgnored=e.extraIgnored&&r.extraIgnored;
+      e.sources.push(`${r.file} row ${r.row}`);
+      e.preview=(e.preview+' '+r.preview).slice(0,260);
+    }
+  });
+  return [...map.values()];
+}
+
+function table(headers,rows){
+  return '<table><thead><tr>'+headers.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+
+  (rows.length?rows.map(r=>'<tr>'+r.map(c=>'<td'+(typeof c==='number'?' class="num"':'')+'>'+c+'</td>').join('')+'</tr>').join(''):`<tr><td colspan="${headers.length}">No rows.</td></tr>`)+
+  '</tbody></table>';
+}
+function weekPills(weeks){
+  return weeks.length ? weeks.map(x=>`<span class="pill">Week ${x}</span>`).join('') : '';
+}
+
+function render(st){
+  el('listed').textContent=listedKids.length;
+  el('newCount').textContent=listedKids.filter(c=>c.newReg).length;
+  el('returningCount').textContent=listedKids.filter(c=>!c.newReg).length;
+  el('noWeek').textContent=children.filter(c=>!c.weeks.length).length;
+  el('rowsRead').textContent=rawRows.length;
+
+  el('summary').innerHTML=table(
+    ['Week','Kids needing files','New reg','Not new'],
+    summaryRows.map(s=>['Week '+s.week,s.total,s.newReg,s.returning])
+  );
+
+  let html='';
+  for(let w=st.minW; w<=st.maxW; w++){
+    const kids=listedKids.filter(c=>c.firstWeek===w);
+    if(!kids.length) continue;
+    html+=`<div class="week"><h3>Week ${w} — ${kids.length} child${kids.length===1?'':'ren'}</h3>`+
+      table(['Last name','First name','Location / file','All counted weeks','Ignored waitlist weeks','New reg?','Source row'],
+        kids.map(c=>[
+          esc(c.last),
+          esc(c.first),
+          esc(c.location),
+          weekPills(c.weeks),
+          weekPills(c.skippedWeeks),
+          c.newReg?'Yes':'No',
+          esc(c.sources.join('; '))
+        ])
+      )+
+      '</div>';
+  }
+  el('weekLists').innerHTML=html||'<p>No children matched the current settings.</p>';
+
+  el('audit').innerHTML=table(
+    ['Status','First week','First name','Last name','Location / file','Counted weeks','Ignored weeks','New reg?','Source row','Preview'],
+    children.slice().sort((a,b)=>(a.firstWeek||999)-(b.firstWeek||999)||a.last.localeCompare(b.last)).map(c=>[
+      c.extraIgnored?'<span class="warn">Extra ignore keyword</span>':(c.weeks.length?'Listed':'<span class="warn">No valid week</span>'),
+      c.firstWeek?'Week '+c.firstWeek:'',
+      esc(c.first),
+      esc(c.last),
+      esc(c.location),
+      weekPills(c.weeks),
+      weekPills(c.skippedWeeks),
+      c.newReg?'Yes':'No',
+      esc(c.sources.join('; ')),
+      esc(c.preview)
+    ])
+  );
+
+  const has=rawRows.length>0;
+  el('results').classList.toggle('hidden',!has);
+  ['rerun','clear','downloadList','downloadSummary','downloadAudit','print'].forEach(id=>el(id).disabled=!has);
+  el('status').innerHTML='<span class="ok">Done.</span> Listed '+listedKids.length+' child'+(listedKids.length===1?'':'ren')+'.';
+}
+
+function csv(rows){
+  return rows.map(r=>r.map(v=>{v=String(v??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\n')
+}
+function download(name,rows){
+  const blob=new Blob([csv(rows)],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
+}
+function listRows(){
+  return [['First Week','Last Name','First Name','Location / File','Counted Weeks','Ignored Waitlist Weeks','New Registration?','Source Row'],
+    ...listedKids.map(c=>[
+      'Week '+c.firstWeek,
+      c.last,
+      c.first,
+      c.location,
+      c.weeks.map(w=>'Week '+w).join('; '),
+      c.skippedWeeks.map(w=>'Week '+w).join('; '),
+      c.newReg?'Yes':'No',
+      c.sources.join('; ')
+    ])];
+}
+function summaryCSV(){
+  return [['Week','Kids Needing Files','New Registration','Not New Registration'],
+    ...summaryRows.map(s=>['Week '+s.week,s.total,s.newReg,s.returning])];
+}
+function auditCSV(){
+  return [['Status','First Week','First Name','Last Name','Location / File','Counted Weeks','Ignored Weeks','New Registration?','Source Row','Preview'],
+    ...children.map(c=>[
+      c.extraIgnored?'Extra ignore keyword':c.weeks.length?'Listed':'No valid week',
+      c.firstWeek?'Week '+c.firstWeek:'',
+      c.first,
+      c.last,
+      c.location,
+      c.weeks.map(w=>'Week '+w).join('; '),
+      c.skippedWeeks.map(w=>'Week '+w).join('; '),
+      c.newReg?'Yes':'No',
+      c.sources.join('; '),
+      c.preview
+    ])];
+}
+
+el('files').addEventListener('change',e=>loadFiles(e.target.files));
+el('drop').addEventListener('dragover',e=>{e.preventDefault();el('drop').classList.add('over')});
+el('drop').addEventListener('dragleave',()=>el('drop').classList.remove('over'));
+el('drop').addEventListener('drop',e=>{e.preventDefault();el('drop').classList.remove('over');loadFiles(e.dataTransfer.files)});
+el('rerun').onclick=process;
+el('clear').onclick=()=>{
+  rawRows=[];children=[];listedKids=[];summaryRows=[];
+  el('files').value='';
+  el('results').classList.add('hidden');
+  ['rerun','clear','downloadList','downloadSummary','downloadAudit','print'].forEach(id=>el(id).disabled=true);
+  el('status').textContent='Cleared.';
+};
+el('downloadList').onclick=()=>download('regpack-first-week-file-list.csv',listRows());
+el('downloadSummary').onclick=()=>download('regpack-first-week-summary.csv',summaryCSV());
+el('downloadAudit').onclick=()=>download('regpack-first-week-audit.csv',auditCSV());
+el('print').onclick=()=>window.print();
+['filter','newWords','weekRange','weekMode','dupes','locationMode','ignoreWords'].forEach(id=>el(id).addEventListener('change',()=>{if(rawRows.length)process()}));
+</script>
+</body>
+</html>

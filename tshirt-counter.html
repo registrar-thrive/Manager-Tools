@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regpack T-Shirt Counter</title>
+  <style>
+    :root {
+      --bg: #f7f7f8;
+      --panel: #ffffff;
+      --text: #18181b;
+      --muted: #666672;
+      --border: #dedee3;
+      --accent: #1f6feb;
+      --accent-soft: #e8f0ff;
+      --danger: #b42318;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 18px 48px;
+    }
+    header {
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: -0.03em;
+    }
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.04);
+      margin: 16px 0;
+    }
+    .drop {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      background: #fbfbfc;
+      transition: .15s ease;
+    }
+    .drop.dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    input[type="file"] {
+      margin: 10px auto 0;
+      display: block;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .card .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .card .num {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #f1f1f4;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #4b4b55;
+    }
+    tr:last-child td { border-bottom: none; }
+    td.num, th.num { text-align: right; }
+    .hidden { display: none; }
+    .warning {
+      color: var(--danger);
+      font-weight: 600;
+    }
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    details {
+      margin-top: 12px;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    code {
+      background: #f0f0f2;
+      padding: 2px 5px;
+      border-radius: 6px;
+    }
+    @media (max-width: 760px) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      h1 { font-size: 26px; }
+      table { font-size: 12px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Regpack T-Shirt Counter</h1>
+    <p>Import one or more Regpack CSV exports. This counts actual t-shirt quantities from the cart list, including lines like <code>2 x $20</code>, <code>Paid2 x $20</code>, and <code>5 x $20</code>.</p>
+    <p class="small">Everything runs locally in your browser. No files are uploaded anywhere.</p>
+  </header>
+
+  <section class="panel">
+    <div id="dropZone" class="drop">
+      <strong>Drop CSV files here</strong>
+      <p>or choose files below. You can select multiple location/project exports at once.</p>
+      <input id="fileInput" type="file" accept=".csv,text/csv" multiple />
+    </div>
+    <div class="controls">
+      <button id="clearBtn" disabled>Clear results</button>
+      <button id="downloadSummaryBtn" class="primary" disabled>Download summary CSV</button>
+      <button id="downloadDetailsBtn" disabled>Download detail CSV</button>
+      <label class="small"><input id="showDetails" type="checkbox" checked /> Show detail rows</label>
+    </div>
+    <p id="status" class="small"></p>
+  </section>
+
+  <section id="results" class="hidden">
+    <div class="cards">
+      <div class="card">
+        <div class="label">Youth Small</div>
+        <div id="smallTotal" class="num">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Youth Medium</div>
+        <div id="mediumTotal" class="num">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Youth Large</div>
+        <div id="largeTotal" class="num">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Shirts</div>
+        <div id="grandTotal" class="num">0</div>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h2>Totals by File / Location</h2>
+      <p class="small">The file name is used as the location/source label. Rename each export file with the location name before importing if you want cleaner labels.</p>
+      <div id="summaryTable"></div>
+    </section>
+
+    <section id="detailsPanel" class="panel">
+      <h2>Detail Check</h2>
+      <p class="small">Use this section to audit which row each shirt count came from.</p>
+      <div id="detailsTable"></div>
+    </section>
+  </section>
+</main>
+
+<script>
+  const state = {
+    summaries: [],
+    details: []
+  };
+
+  const els = {
+    dropZone: document.getElementById('dropZone'),
+    fileInput: document.getElementById('fileInput'),
+    clearBtn: document.getElementById('clearBtn'),
+    downloadSummaryBtn: document.getElementById('downloadSummaryBtn'),
+    downloadDetailsBtn: document.getElementById('downloadDetailsBtn'),
+    showDetails: document.getElementById('showDetails'),
+    status: document.getElementById('status'),
+    results: document.getElementById('results'),
+    detailsPanel: document.getElementById('detailsPanel'),
+    smallTotal: document.getElementById('smallTotal'),
+    mediumTotal: document.getElementById('mediumTotal'),
+    largeTotal: document.getElementById('largeTotal'),
+    grandTotal: document.getElementById('grandTotal'),
+    summaryTable: document.getElementById('summaryTable'),
+    detailsTable: document.getElementById('detailsTable')
+  };
+
+  function parseCSV(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const next = text[i + 1];
+
+      if (inQuotes) {
+        if (char === '"' && next === '"') {
+          field += '"';
+          i++;
+        } else if (char === '"') {
+          inQuotes = false;
+        } else {
+          field += char;
+        }
+      } else {
+        if (char === '"') {
+          inQuotes = true;
+        } else if (char === ',') {
+          row.push(field);
+          field = '';
+        } else if (char === '\n') {
+          row.push(field);
+          rows.push(row);
+          row = [];
+          field = '';
+        } else if (char === '\r') {
+          // Ignore CR; LF handles row end.
+        } else {
+          field += char;
+        }
+      }
+    }
+
+    if (field.length || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
+
+    return rows.filter(r => r.some(cell => String(cell).trim() !== ''));
+  }
+
+  function cleanHeader(value) {
+    return String(value || '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function findColumnIndex(headers, tests) {
+    return headers.findIndex(h => tests.some(test => test.test(h)));
+  }
+
+  function countShirtsInText(text) {
+    const counts = { small: 0, medium: 0, large: 0 };
+    const matches = [];
+    const normalized = String(text || '');
+
+    const shirtRegex = /T-shirt\s*\|\s*Youth\s+(Small|Medium|Large)\b[\s\S]*?(?=(?:T-shirt\s*\|\s*Youth\s+(?:Small|Medium|Large)\b)|$)/gi;
+
+    let match;
+    while ((match = shirtRegex.exec(normalized)) !== null) {
+      const sizeRaw = match[1].toLowerCase();
+      const segment = match[0];
+
+      // Quantity appears right after the shirt name/size and before "Ordered".
+      // Limiting the search prevents later unrelated cart items from affecting this shirt line.
+      const orderedIndex = segment.search(/Ordered/i);
+      const quantityArea = orderedIndex >= 0 ? segment.slice(0, orderedIndex) : segment.slice(0, 180);
+
+      const qtyMatch = quantityArea.match(/(?:Paid)?\s*(\d+)\s*x\s*\$\s*[\d,.]+/i);
+      const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
+
+      if (Number.isFinite(qty) && qty > 0) {
+        counts[sizeRaw] += qty;
+        matches.push({
+          size: sizeRaw[0].toUpperCase() + sizeRaw.slice(1),
+          qty,
+          preview: segment.replace(/\s+/g, ' ').trim().slice(0, 180)
+        });
+      }
+    }
+
+    return { counts, matches };
+  }
+
+  async function readFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+  }
+
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList || []).filter(f => /\.csv$/i.test(f.name) || f.type === 'text/csv');
+    if (!files.length) {
+      els.status.textContent = 'Please choose at least one CSV file.';
+      return;
+    }
+
+    state.summaries = [];
+    state.details = [];
+    els.status.textContent = `Reading ${files.length} file${files.length === 1 ? '' : 's'}...`;
+
+    for (const file of files) {
+      const text = await readFile(file);
+      const rows = parseCSV(text);
+      if (!rows.length) continue;
+
+      const headers = rows[0].map(cleanHeader);
+      const firstNameIndex = findColumnIndex(headers, [/first name/i]);
+      const lastNameIndex = findColumnIndex(headers, [/last name/i]);
+      const cartIndex = findColumnIndex(headers, [/cart list/i, /cart contents/i, /sub-unit cart/i]);
+
+      let fileCounts = { small: 0, medium: 0, large: 0 };
+      let foundLines = 0;
+
+      rows.slice(1).forEach((row, idx) => {
+        const rowNumber = idx + 2;
+        const rowText = cartIndex >= 0 ? row[cartIndex] : row.join('\t');
+        const firstName = firstNameIndex >= 0 ? row[firstNameIndex] : '';
+        const lastName = lastNameIndex >= 0 ? row[lastNameIndex] : '';
+        const { counts, matches } = countShirtsInText(rowText);
+
+        fileCounts.small += counts.small;
+        fileCounts.medium += counts.medium;
+        fileCounts.large += counts.large;
+
+        matches.forEach(m => {
+          foundLines++;
+          state.details.push({
+            file: file.name,
+            rowNumber,
+            firstName,
+            lastName,
+            size: m.size,
+            qty: m.qty,
+            preview: m.preview
+          });
+        });
+      });
+
+      state.summaries.push({
+        file: file.name,
+        small: fileCounts.small,
+        medium: fileCounts.medium,
+        large: fileCounts.large,
+        total: fileCounts.small + fileCounts.medium + fileCounts.large,
+        rows: Math.max(0, rows.length - 1),
+        foundLines
+      });
+    }
+
+    render();
+  }
+
+  function render() {
+    const grand = state.summaries.reduce((acc, s) => {
+      acc.small += s.small;
+      acc.medium += s.medium;
+      acc.large += s.large;
+      acc.total += s.total;
+      return acc;
+    }, { small: 0, medium: 0, large: 0, total: 0 });
+
+    els.smallTotal.textContent = grand.small;
+    els.mediumTotal.textContent = grand.medium;
+    els.largeTotal.textContent = grand.large;
+    els.grandTotal.textContent = grand.total;
+
+    els.summaryTable.innerHTML = tableHTML(
+      ['File / Location', 'Small', 'Medium', 'Large', 'Total', 'Rows Checked', 'Shirt Lines Found'],
+      state.summaries.map(s => [
+        escapeHTML(s.file),
+        numberCell(s.small),
+        numberCell(s.medium),
+        numberCell(s.large),
+        numberCell(s.total),
+        numberCell(s.rows),
+        numberCell(s.foundLines)
+      ])
+    );
+
+    els.detailsTable.innerHTML = tableHTML(
+      ['File', 'CSV Row', 'First Name', 'Last Name', 'Size', 'Qty', 'Matched Text'],
+      state.details.map(d => [
+        escapeHTML(d.file),
+        numberCell(d.rowNumber),
+        escapeHTML(d.firstName),
+        escapeHTML(d.lastName),
+        escapeHTML(d.size),
+        numberCell(d.qty),
+        escapeHTML(d.preview)
+      ])
+    );
+
+    const hasResults = state.summaries.length > 0;
+    els.results.classList.toggle('hidden', !hasResults);
+    els.clearBtn.disabled = !hasResults;
+    els.downloadSummaryBtn.disabled = !hasResults;
+    els.downloadDetailsBtn.disabled = !hasResults;
+    els.status.textContent = hasResults
+      ? `Done. Counted ${grand.total} shirt${grand.total === 1 ? '' : 's'} across ${state.summaries.length} file${state.summaries.length === 1 ? '' : 's'}.`
+      : 'No shirt orders found.';
+
+    els.detailsPanel.classList.toggle('hidden', !els.showDetails.checked);
+  }
+
+  function tableHTML(headers, rows) {
+    const headerHTML = headers.map(h => `<th>${escapeHTML(h)}</th>`).join('');
+    const bodyHTML = rows.length
+      ? rows.map(row => `<tr>${row.map(cell => {
+          const isNum = typeof cell === 'object' && cell.type === 'number';
+          const value = isNum ? cell.value : cell;
+          return `<td class="${isNum ? 'num' : ''}">${value}</td>`;
+        }).join('')}</tr>`).join('')
+      : `<tr><td colspan="${headers.length}">No rows to show.</td></tr>`;
+
+    return `<table><thead><tr>${headerHTML}</tr></thead><tbody>${bodyHTML}</tbody></table>`;
+  }
+
+  function numberCell(value) {
+    return { type: 'number', value: String(value) };
+  }
+
+  function escapeHTML(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function toCSV(rows) {
+    return rows.map(row => row.map(cell => {
+      const value = String(cell ?? '');
+      return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+    }).join(',')).join('\n');
+  }
+
+  function download(filename, content) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  els.fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+  els.dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    els.dropZone.classList.add('dragover');
+  });
+  els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('dragover'));
+  els.dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    els.dropZone.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  els.clearBtn.addEventListener('click', () => {
+    state.summaries = [];
+    state.details = [];
+    els.fileInput.value = '';
+    render();
+    els.status.textContent = 'Cleared.';
+  });
+
+  els.showDetails.addEventListener('change', () => {
+    els.detailsPanel.classList.toggle('hidden', !els.showDetails.checked);
+  });
+
+  els.downloadSummaryBtn.addEventListener('click', () => {
+    const rows = [
+      ['File / Location', 'Youth Small', 'Youth Medium', 'Youth Large', 'Total', 'Rows Checked', 'Shirt Lines Found'],
+      ...state.summaries.map(s => [s.file, s.small, s.medium, s.large, s.total, s.rows, s.foundLines])
+    ];
+    download('regpack-tshirt-summary.csv', toCSV(rows));
+  });
+
+  els.downloadDetailsBtn.addEventListener('click', () => {
+    const rows = [
+      ['File', 'CSV Row', 'First Name', 'Last Name', 'Size', 'Quantity', 'Matched Text'],
+      ...state.details.map(d => [d.file, d.rowNumber, d.firstName, d.lastName, d.size, d.qty, d.preview])
+    ];
+    download('regpack-tshirt-detail.csv', toCSV(rows));
+  });
+</script>
+</body>
+</html>
