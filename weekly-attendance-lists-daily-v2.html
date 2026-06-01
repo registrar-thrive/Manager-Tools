@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Regpack Weekly Attendance Lists</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#f7f7f8;--panel:#fff;--text:#18181b;--muted:#666672;--border:#dddde3;--accent:#1f6feb;--warn:#b42318;--ok:#0f7a3a}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0;line-height:1.45}
+main{max-width:1220px;margin:auto;padding:28px 16px 56px}
+h1{margin:0 0 8px;font-size:32px;letter-spacing:-.04em}
+h2{margin:0 0 8px}
+p{color:var(--muted);margin:0 0 12px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 8px 24px rgba(0,0,0,.04)}
+.drop{border:2px dashed var(--border);border-radius:14px;padding:24px;text-align:center;background:#fbfbfc;transition:.12s ease}
+.drop.over{border-color:var(--accent);background:#e8f0ff}
+.controls,.settings{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px}
+.field{min-width:190px;flex:1}
+label{display:block;font-size:13px;font-weight:700;color:var(--muted)}
+input,select{width:100%;box-sizing:border-box;margin-top:5px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px}
+.card .label{font-size:13px;color:var(--muted)}
+.card .num{font-size:32px;font-weight:850;letter-spacing:-.04em}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+th,td{border-bottom:1px solid var(--border);padding:9px 10px;text-align:left;vertical-align:top;font-size:14px}
+th{background:#f1f1f4;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#4b4b55}
+td.num,th.num{text-align:right}
+.hidden{display:none}
+.week{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:16px 0;background:#fff;break-inside:avoid;page-break-inside:avoid}
+.week-head{padding:12px 14px;background:#f1f1f4;border-bottom:1px solid var(--border)}
+.week-head h3{margin:0 0 6px;font-size:18px}
+.week-stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800;color:#4b4b55}
+.stat strong{color:#18181b}
+.small{font-size:13px;color:var(--muted)}
+.warn{color:var(--warn);font-weight:700}
+.ok{color:var(--ok);font-weight:700}
+code{background:#f0f0f2;border-radius:6px;padding:2px 5px}
+.scroll{max-height:620px;overflow:auto}
+.blank{height:22px;min-width:44px}
+.daily th.day,.daily td.day{text-align:center;width:56px}
+.checkbox{font-size:20px;line-height:1;color:#888}
+.checked{font-size:18px;line-height:1;color:#18181b}
+.type-pill{display:inline-block;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:12px;background:#fafafa;white-space:nowrap}
+.type-weekly{background:#edf7ff;border-color:#c7e5ff}
+.type-daily{background:#fff8e8;border-color:#f1d28a}
+.pill{display:inline-block;border:1px solid #dddde3;border-radius:999px;padding:2px 8px;font-size:12px;background:#fafafa;margin:0 4px 4px 0}
+@media(max-width:950px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff}
+  main{max-width:none;padding:0}
+  .panel,.card,.week{box-shadow:none;border-color:#999}
+  .week{page-break-inside:avoid;margin:0 0 18px}
+  th{background:#eee!important;color:#000}
+  h1{font-size:24px}
+  .stat{border-color:#999}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Regpack Weekly Attendance Lists <span style="font-size:14px;color:#666672;font-weight:600">weekly + daily</span></h1>
+<p>Import the Regpack CSV export filtered to products that are <strong>ordered</strong> and <strong>locked</strong>. The app totals attendance for each week and creates alphabetized printable lists.</p>
+<p class="small">This version shows weekly registrants separately from the total including both weekly and daily registrations. Everything runs locally in your browser.</p>
+
+<section class="panel no-print">
+  <div id="drop" class="drop">
+    <strong>Drop CSV files here</strong>
+    <p>or choose files below. Multiple location/project exports are okay.</p>
+    <input id="files" type="file" accept=".csv,text/csv" multiple>
+  </div>
+
+  <div class="settings">
+    <div class="field">
+      <label>Week 1 Monday</label>
+      <input id="weekOneMonday" value="2026-06-29">
+    </div>
+    <div class="field">
+      <label>Week Range</label>
+      <input id="weekRange" value="1-10">
+    </div>
+    <div class="field">
+      <label>Week Detection Mode</label>
+      <select id="weekMode">
+        <option value="nonwaitlisted">Count non-waitlisted items</option>
+        <option value="any">Count any item mentioned</option>
+        <option value="paidEvidence">Count items with paid/allocated/ACCB evidence</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Duplicate Rows</label>
+      <select id="dupes">
+        <option value="keep">Keep every row</option>
+        <option value="samefile">Merge same child name in same file</option>
+        <option value="allfiles">Merge same child name across files</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings">
+    <div class="field">
+      <label>Sort Names By</label>
+      <select id="sortMode">
+        <option value="last">Last name, then first</option>
+        <option value="first">First name, then last</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Location Label</label>
+      <select id="locationMode">
+        <option value="file">Use CSV file name</option>
+        <option value="blank">Leave blank</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Printable Columns</label>
+      <select id="printMode">
+        <option value="daily">Mon-Fri attendance columns</option>
+        <option value="single">Single attendance/initials column</option>
+        <option value="names">Names only</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Extra Ignore Keywords</label>
+      <input id="ignoreWords" value="">
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="rerun" class="primary" disabled>Reprocess</button>
+    <button id="clear" disabled>Clear</button>
+    <button id="downloadWeekly" class="primary" disabled>Download weekly attendance CSV</button>
+    <button id="downloadSummary" disabled>Download summary CSV</button>
+    <button id="downloadAudit" disabled>Download audit CSV</button>
+    <button id="print" disabled>Print attendance lists</button>
+  </div>
+  <p id="status" class="small"></p>
+</section>
+
+<section id="results" class="hidden">
+  <div class="cards">
+    <div class="card"><div class="label">Unique Child Rows</div><div id="childRows" class="num">0</div></div>
+    <div class="card"><div class="label">Weekly Registrant Entries</div><div id="weeklyEntriesCount" class="num">0</div></div>
+    <div class="card"><div class="label">Daily-Only Entries</div><div id="dailyEntriesCount" class="num">0</div></div>
+    <div class="card"><div class="label">Total Weekly List Entries</div><div id="attendanceEntries" class="num">0</div></div>
+    <div class="card"><div class="label">No Valid Item</div><div id="noWeek" class="num">0</div></div>
+  </div>
+
+  <section class="panel">
+    <h2>Weekly Totals</h2>
+    <div id="summary"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Printable Attendance Lists</h2>
+    <p class="small no-print">Each week shows <strong>weekly registrants</strong> and the <strong>total list count</strong> including both weekly and daily registrations.</p>
+    <div id="weekLists"></div>
+  </section>
+
+  <section class="panel no-print">
+    <h2>Audit</h2>
+    <p class="small">Use this to check exactly which weekly/daily items were counted and which waitlisted items were ignored.</p>
+    <div id="audit" class="scroll"></div>
+  </section>
+</section>
+</main>
+
+<script>
+let rawRows=[], children=[], weeklyEntries=[], summaryRows=[];
+
+const el=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const splitWords=s=>String(s||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+const fileLabel=s=>String(s||'').replace(/\.csv$/i,'');
+
+function parseCSV(text){
+  const rows=[]; let row=[], field='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(q){
+      if(c=='"'&&n=='"'){field+='"';i++}
+      else if(c=='"') q=false;
+      else field+=c;
+    } else {
+      if(c=='"') q=true;
+      else if(c==','){row.push(field);field=''}
+      else if(c=='\n'){row.push(field);rows.push(row);row=[];field=''}
+      else if(c!='\r') field+=c;
+    }
+  }
+  if(field.length||row.length){row.push(field);rows.push(row)}
+  return rows.filter(r=>r.some(c=>String(c).trim()));
+}
+
+function decodeEntities(s){
+  return String(s||'')
+    .replace(/&nbsp;/g,' ')
+    .replace(/&#39;/g,"'")
+    .replace(/&amp;/g,'&')
+    .replace(/&quot;/g,'"')
+    .replace(/&lt;/g,'<')
+    .replace(/&gt;/g,'>');
+}
+function cleanHeader(h){return decodeEntities(h).replace(/\s+/g,' ').trim()}
+function findCol(headers, tests){return headers.findIndex(h=>tests.some(t=>t.test(h)))}
+function hasAny(text, words){const s=String(text||'').toLowerCase(); return words.some(w=>s.includes(w))}
+function parseRange(s){
+  const m=String(s||'1-10').match(/(\d+)\s*-\s*(\d+)/);
+  if(!m) return [1,10];
+  return [parseInt(m[1]), parseInt(m[2])];
+}
+function parseLocalDate(yyyyMmDd){
+  const m=String(yyyyMmDd||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return null;
+  return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+}
+function formatDate(d){
+  if(!d) return '';
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function addDays(date, days){
+  const d=new Date(date.getTime());
+  d.setDate(d.getDate()+days);
+  return d;
+}
+function dateDiffDays(a,b){
+  const one=24*60*60*1000;
+  const aa=new Date(a.getFullYear(),a.getMonth(),a.getDate());
+  const bb=new Date(b.getFullYear(),b.getMonth(),b.getDate());
+  return Math.round((aa-bb)/one);
+}
+function monthIndex(name){
+  const map={jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,may:4,jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,sept:8,september:8,oct:9,october:9,nov:10,november:10,dec:11,december:11};
+  return map[String(name||'').toLowerCase()];
+}
+function parseRegpackDate(text){
+  // Catches formats like "Mon, Jul 13th, 2026" or "July 13Mon, Jul 13th, 2026".
+  const s=String(text||'');
+  const m=s.match(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s*([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,\s*(\d{4})/i);
+  if(!m) return null;
+  const mi=monthIndex(m[1]);
+  if(mi===undefined) return null;
+  return new Date(Number(m[3]), mi, Number(m[2]));
+}
+function dateToWeekAndDay(date, weekOneMonday, minW, maxW){
+  if(!date||!weekOneMonday) return null;
+  const diff=dateDiffDays(date, weekOneMonday);
+  const week=Math.floor(diff/7)+1;
+  const day=diff%7;
+  if(week<minW||week>maxW||day<0||day>6) return null;
+  return {week, day};
+}
+function dayName(day){
+  return ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][day]||'';
+}
+
+function itemSegments(text, minW, maxW, weekOneMonday){
+  const source=String(text||'');
+
+  // Find weekly products.
+  const weeklyRx=/(?:Summer\s+Camp\s+)?Week\s*([0-9]{1,2})(?![0-9])/gi;
+  const weeklyMatches=[];
+  let m;
+  while((m=weeklyRx.exec(source))!==null){
+    weeklyMatches.push({type:'weekly', week:parseInt(m[1],10), index:m.index});
+    if(m.index===weeklyRx.lastIndex) weeklyRx.lastIndex++;
+  }
+
+  // Find daily products by start date.
+  // Looks for "Daily - July 13Mon, Jul 13th, 2026 > Mon, Jul 13th, 2026"
+  const dailyRx=/Daily\s*-\s*[\s\S]{0,80}?((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s*[A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,\s*\d{4})/gi;
+  const dailyMatches=[];
+  while((m=dailyRx.exec(source))!==null){
+    const date=parseRegpackDate(m[1]);
+    const wd=dateToWeekAndDay(date, weekOneMonday, minW, maxW);
+    if(wd) dailyMatches.push({type:'daily', week:wd.week, day:wd.day, date:formatDate(date), index:m.index});
+    if(m.index===dailyRx.lastIndex) dailyRx.lastIndex++;
+  }
+
+  const matches=[...weeklyMatches,...dailyMatches].sort((a,b)=>a.index-b.index);
+  const segments=[];
+  for(let i=0;i<matches.length;i++){
+    const item=matches[i];
+    if(!Number.isFinite(item.week)||item.week<minW||item.week>maxW) continue;
+    const start=item.index;
+    const end=i+1<matches.length ? matches[i+1].index : source.length;
+    const segment=source.slice(start,end);
+    const normalized=segment.replace(/\s+/g,' ').trim();
+    const waitlisted=/Waitlisted/i.test(segment);
+    const paidEvidence=/Ordered\s*&\s*Paid|Paid\s*\$|Paid\s+on:|has\s+been\s+allocated|ACCB|no\s+payment\s+is\s+required|Therefore\s+no\s+payment\s+is\s+required/i.test(segment);
+    const orderedOnly=/Ordered\s+on:/i.test(segment) && !paidEvidence && !waitlisted;
+
+    segments.push({
+      ...item,
+      segment,
+      normalized,
+      waitlisted,
+      paidEvidence,
+      orderedOnly
+    });
+  }
+  return segments;
+}
+
+function validItemsFrom(text, st){
+  const counted=[], skipped=[];
+  const segments=itemSegments(text, st.minW, st.maxW, st.weekOneMonday);
+
+  segments.forEach(s=>{
+    let include=false;
+    let status='';
+
+    if(st.weekMode==='any'){
+      include=true;
+      status=s.waitlisted ? 'mentioned/waitlisted' : 'mentioned';
+    } else if(st.weekMode==='paidEvidence'){
+      include=!s.waitlisted && s.paidEvidence;
+      status=s.waitlisted ? 'waitlisted ignored' : s.paidEvidence ? 'paid/allocated/ACCB evidence' : 'no payment evidence ignored';
+    } else {
+      include=!s.waitlisted;
+      status=s.waitlisted ? 'waitlisted ignored' : s.orderedOnly ? 'ordered/non-waitlisted' : s.paidEvidence ? 'paid/allocated/ACCB evidence' : 'non-waitlisted';
+    }
+
+    const item={
+      type:s.type,
+      week:s.week,
+      day:s.type==='weekly'?null:s.day,
+      date:s.date||'',
+      counted:include,
+      status,
+      preview:s.normalized.slice(0,180)
+    };
+    if(include) counted.push(item);
+    else skipped.push(item);
+  });
+
+  return {counted, skipped};
+}
+
+function settings(){
+  const [minW,maxW]=parseRange(el('weekRange').value);
+  return {
+    minW,maxW,
+    weekOneMonday:parseLocalDate(el('weekOneMonday').value),
+    weekMode:el('weekMode').value,
+    dupes:el('dupes').value,
+    sortMode:el('sortMode').value,
+    locationMode:el('locationMode').value,
+    printMode:el('printMode').value,
+    ignoreWords:splitWords(el('ignoreWords').value)
+  }
+}
+
+async function readFile(f){
+  return await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||''));r.onerror=()=>rej(r.error);r.readAsText(f)})
+}
+
+async function loadFiles(files){
+  rawRows=[];
+  const list=[...files].filter(f=>/\.csv$/i.test(f.name)||f.type==='text/csv'||!f.type);
+  if(!list.length){el('status').textContent='Please choose at least one CSV.';return}
+  el('status').textContent='Reading files...';
+
+  for(const f of list){
+    const rows=parseCSV(await readFile(f));
+    if(!rows.length) continue;
+    const headers=rows[0].map(cleanHeader);
+    const first=findCol(headers,[/child.*first/i,/first name/i,/^first$/i]);
+    const last=findCol(headers,[/child.*last/i,/last name/i,/^last$/i]);
+    const cart=findCol(headers,[/sub-unit cart list/i,/cart list/i,/cart contents/i,/cart/i]);
+    const age=findCol(headers,[/age/i]);
+    const grade=findCol(headers,[/grade/i]);
+    const parentFirst=findCol(headers,[/parent.*first/i,/guardian.*first/i,/account.*first/i]);
+    const parentLast=findCol(headers,[/parent.*last/i,/guardian.*last/i,/account.*last/i]);
+    const email=findCol(headers,[/email/i]);
+
+    rows.slice(1).forEach((r,i)=>{
+      const all=r.join('\n');
+      rawRows.push({
+        file:f.name,
+        row:i+2,
+        first:first>=0?r[first]:'',
+        last:last>=0?r[last]:'',
+        cart:cart>=0?r[cart]:all,
+        all,
+        age:age>=0?r[age]:'',
+        grade:grade>=0?r[grade]:'',
+        parentFirst:parentFirst>=0?r[parentFirst]:'',
+        parentLast:parentLast>=0?r[parentLast]:'',
+        email:email>=0?r[email]:''
+      });
+    });
+  }
+  process();
+}
+
+function mergeItems(items){
+  const map=new Map();
+  items.forEach(item=>{
+    const key=[item.type,item.week,item.day===null?'':item.day,item.date||''].join('|');
+    if(!map.has(key)) map.set(key,{...item});
+  });
+  return [...map.values()].sort((a,b)=>(a.week-b.week)||((a.day??-1)-(b.day??-1))||a.type.localeCompare(b.type));
+}
+
+function process(){
+  const st=settings();
+  if(!st.weekOneMonday){
+    el('status').innerHTML='<span class="warn">Week 1 Monday must be in YYYY-MM-DD format.</span>';
+    return;
+  }
+
+  let rows=rawRows.map(r=>{
+    const txt=r.cart||r.all;
+    const extraIgnored=hasAny(txt,st.ignoreWords);
+    const itemInfo=extraIgnored ? {counted:[], skipped:[]} : validItemsFrom(txt,st);
+    const first=String(r.first||'').trim();
+    const last=String(r.last||'').trim();
+    return {
+      file:r.file,
+      row:r.row,
+      first,
+      last,
+      age:String(r.age||'').trim(),
+      grade:String(r.grade||'').trim(),
+      parentName:(String(r.parentFirst||'').trim()+' '+String(r.parentLast||'').trim()).trim(),
+      email:String(r.email||'').trim(),
+      location:st.locationMode==='file'?fileLabel(r.file):'',
+      items:itemInfo.counted,
+      skippedItems:itemInfo.skipped,
+      extraIgnored,
+      preview:String(txt||'').replace(/\s+/g,' ').trim().slice(0,240),
+      sources:[`${r.file} row ${r.row}`]
+    };
+  });
+
+  children=dedupe(rows,st.dupes);
+
+  weeklyEntries=[];
+  children.forEach(c=>{
+    const byWeek=new Map();
+
+    c.items.forEach(item=>{
+      if(!byWeek.has(item.week)){
+        byWeek.set(item.week,{...c, week:item.week, hasWeekly:false, dailyDays:new Set(), dailyDates:[], countedTypes:[]});
+      }
+      const entry=byWeek.get(item.week);
+      if(item.type==='weekly'){
+        entry.hasWeekly=true;
+        entry.countedTypes.push('Weekly');
+      } else if(item.type==='daily') {
+        entry.dailyDays.add(item.day);
+        if(item.date) entry.dailyDates.push(item.date);
+        entry.countedTypes.push(`${dayName(item.day)} Daily`);
+      }
+    });
+
+    byWeek.forEach(entry=>{
+      if(entry.hasWeekly){
+        entry.kind='Weekly';
+        entry.days=new Set([0,1,2,3,4]);
+      } else {
+        entry.kind='Daily';
+        entry.days=entry.dailyDays;
+      }
+      entry.dailyDays=[...entry.dailyDays].sort((a,b)=>a-b);
+      entry.days=[...entry.days].sort((a,b)=>a-b);
+      entry.countedTypes=[...new Set(entry.countedTypes)];
+      weeklyEntries.push(entry);
+    });
+  });
+
+  weeklyEntries.sort((a,b)=>{
+    if(a.week!==b.week) return a.week-b.week;
+    if(st.sortMode==='first') return a.first.localeCompare(b.first)||a.last.localeCompare(b.last)||a.location.localeCompare(b.location);
+    return a.last.localeCompare(b.last)||a.first.localeCompare(b.first)||a.location.localeCompare(b.location);
+  });
+
+  summaryRows=[];
+  for(let w=st.minW; w<=st.maxW; w++){
+    const entries=weeklyEntries.filter(e=>e.week===w);
+    const weeklyCount=entries.filter(e=>e.hasWeekly).length;
+    const dailyOnlyCount=entries.filter(e=>!e.hasWeekly).length;
+    const dayTotals=[0,1,2,3,4].map(day=>entries.filter(e=>e.days.includes(day)).length);
+    summaryRows.push({week:w,total:entries.length,weekly:weeklyCount,dailyOnly:dailyOnlyCount,dayTotals});
+  }
+  render(st);
+}
+
+function dedupe(rows,mode){
+  if(mode==='keep') return rows;
+  const map=new Map();
+  rows.forEach(r=>{
+    const name=(r.first+'|'+r.last).toLowerCase();
+    const key=mode==='allfiles'?name:(r.file+'|'+name);
+    if(!map.has(key)) map.set(key,{...r});
+    else{
+      const e=map.get(key);
+      e.items=mergeItems([...e.items,...r.items]);
+      e.skippedItems=mergeItems([...e.skippedItems,...r.skippedItems]);
+      e.sources.push(`${r.file} row ${r.row}`);
+      e.preview=(e.preview+' '+r.preview).slice(0,280);
+      e.age=e.age||r.age; e.grade=e.grade||r.grade; e.parentName=e.parentName||r.parentName; e.email=e.email||r.email;
+      e.extraIgnored=e.extraIgnored&&r.extraIgnored;
+    }
+  });
+  return [...map.values()];
+}
+
+function table(headers,rows,className=''){
+  return '<table class="'+className+'"><thead><tr>'+headers.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+
+  (rows.length?rows.map(r=>'<tr>'+r.map(c=>'<td'+(typeof c==='number'?' class="num"':'')+'>'+c+'</td>').join('')+'</tr>').join(''):`<tr><td colspan="${headers.length}">No rows.</td></tr>`)+
+  '</tbody></table>';
+}
+function itemPills(items){
+  return items.length ? items.map(i=>{
+    const label=i.type==='weekly' ? `Week ${i.week} Weekly` : `Week ${i.week} ${dayName(i.day)} Daily`;
+    return `<span class="pill">${esc(label)}</span>`;
+  }).join('') : '';
+}
+function dayMark(entry,day){
+  return entry.days.includes(day) ? '<span class="checked">✓</span>' : '<span class="checkbox">□</span>';
+}
+function typePill(entry){
+  if(entry.hasWeekly) return '<span class="type-pill type-weekly">Weekly</span>';
+  return '<span class="type-pill type-daily">Daily</span>';
+}
+function attendanceHeaders(st){
+  if(st.printMode==='daily') return ['Last name','First name','Type','Location / file','Mon','Tue','Wed','Thu','Fri','Notes'];
+  if(st.printMode==='single') return ['Last name','First name','Type','Location / file','Attendance / Initials','Notes'];
+  return ['Last name','First name','Type','Location / file'];
+}
+function attendanceRow(e,st){
+  const base=[esc(e.last),esc(e.first),typePill(e),esc(e.location)];
+  if(st.printMode==='daily') return [...base,dayMark(e,0),dayMark(e,1),dayMark(e,2),dayMark(e,3),dayMark(e,4),'<div class="blank"></div>'];
+  if(st.printMode==='single') return [...base,'<div class="blank"></div>','<div class="blank"></div>'];
+  return base;
+}
+function weekStatLine(s){
+  return `
+    <div class="week-stats">
+      <span class="stat">Weekly registrants: <strong>${s.weekly}</strong></span>
+      <span class="stat">Daily-only registrants: <strong>${s.dailyOnly}</strong></span>
+      <span class="stat">Total list count: <strong>${s.total}</strong></span>
+      <span class="stat">Mon: <strong>${s.dayTotals[0]}</strong></span>
+      <span class="stat">Tue: <strong>${s.dayTotals[1]}</strong></span>
+      <span class="stat">Wed: <strong>${s.dayTotals[2]}</strong></span>
+      <span class="stat">Thu: <strong>${s.dayTotals[3]}</strong></span>
+      <span class="stat">Fri: <strong>${s.dayTotals[4]}</strong></span>
+    </div>`;
+}
+
+function render(st){
+  const weeklyRegistrantEntries=weeklyEntries.filter(e=>e.hasWeekly).length;
+  const dailyOnlyEntries=weeklyEntries.filter(e=>!e.hasWeekly).length;
+
+  el('childRows').textContent=children.length;
+  el('weeklyEntriesCount').textContent=weeklyRegistrantEntries;
+  el('dailyEntriesCount').textContent=dailyOnlyEntries;
+  el('attendanceEntries').textContent=weeklyEntries.length;
+  el('noWeek').textContent=children.filter(c=>!c.items.length).length;
+
+  el('summary').innerHTML=table(
+    ['Week','Weekly registrants','Daily-only registrants','Total list count','Mon total','Tue total','Wed total','Thu total','Fri total'],
+    summaryRows.map(s=>['Week '+s.week,s.weekly,s.dailyOnly,s.total,s.dayTotals[0],s.dayTotals[1],s.dayTotals[2],s.dayTotals[3],s.dayTotals[4]])
+  );
+
+  let html='';
+  for(let w=st.minW; w<=st.maxW; w++){
+    const entries=weeklyEntries.filter(e=>e.week===w);
+    if(!entries.length) continue;
+    const stats=summaryRows.find(s=>s.week===w);
+    html+=`<div class="week">
+      <div class="week-head">
+        <h3>Week ${w} Attendance</h3>
+        ${weekStatLine(stats)}
+      </div>`+
+      table(attendanceHeaders(st), entries.map(e=>attendanceRow(e,st)), st.printMode==='daily'?'daily':'')+
+      '</div>';
+  }
+  el('weekLists').innerHTML=html||'<p>No children matched the current settings.</p>';
+
+  el('audit').innerHTML=table(
+    ['Status','First','Last','Location / file','Counted items','Ignored items','Source row','Preview'],
+    children.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first)).map(c=>[
+      c.extraIgnored?'<span class="warn">Extra ignore keyword</span>':(c.items.length?'Listed':'<span class="warn">No valid item</span>'),
+      esc(c.first),
+      esc(c.last),
+      esc(c.location),
+      itemPills(c.items),
+      itemPills(c.skippedItems),
+      esc(c.sources.join('; ')),
+      esc(c.preview)
+    ])
+  );
+
+  const has=rawRows.length>0;
+  el('results').classList.toggle('hidden',!has);
+  ['rerun','clear','downloadWeekly','downloadSummary','downloadAudit','print'].forEach(id=>el(id).disabled=!has);
+  el('status').innerHTML='<span class="ok">Done.</span> Created '+weeklyEntries.length+' weekly list entr'+(weeklyEntries.length===1?'y':'ies')+', including '+weeklyRegistrantEntries+' weekly registrant entr'+(weeklyRegistrantEntries===1?'y':'ies')+'.';
+}
+
+function csv(rows){
+  return rows.map(r=>r.map(v=>{v=String(v??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\n')
+}
+function download(name,rows){
+  const blob=new Blob([csv(rows)],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
+}
+function weeklyCSV(){
+  return [['Week','Last Name','First Name','Registration Type','Mon','Tue','Wed','Thu','Fri','Location / File','Age','Grade','Parent/Guardian','Email','Source Row'],
+    ...weeklyEntries.map(e=>[
+      'Week '+e.week,
+      e.last,
+      e.first,
+      e.hasWeekly?'Weekly':'Daily',
+      e.days.includes(0)?'Yes':'',
+      e.days.includes(1)?'Yes':'',
+      e.days.includes(2)?'Yes':'',
+      e.days.includes(3)?'Yes':'',
+      e.days.includes(4)?'Yes':'',
+      e.location,
+      e.age,
+      e.grade,
+      e.parentName,
+      e.email,
+      e.sources.join('; ')
+    ])];
+}
+function summaryCSV(){
+  return [['Week','Weekly Registrants','Daily-Only Registrants','Total List Count','Mon Total','Tue Total','Wed Total','Thu Total','Fri Total'],
+    ...summaryRows.map(s=>['Week '+s.week,s.weekly,s.dailyOnly,s.total,s.dayTotals[0],s.dayTotals[1],s.dayTotals[2],s.dayTotals[3],s.dayTotals[4]])];
+}
+function auditCSV(){
+  return [['Status','First Name','Last Name','Location / File','Counted Items','Ignored Items','Source Row','Preview'],
+    ...children.map(c=>[
+      c.extraIgnored?'Extra ignore keyword':c.items.length?'Listed':'No valid item',
+      c.first,
+      c.last,
+      c.location,
+      c.items.map(i=>i.type==='weekly'?`Week ${i.week} Weekly`:`Week ${i.week} ${dayName(i.day)} Daily`).join('; '),
+      c.skippedItems.map(i=>i.type==='weekly'?`Week ${i.week} Weekly`:`Week ${i.week} ${dayName(i.day)} Daily`).join('; '),
+      c.sources.join('; '),
+      c.preview
+    ])];
+}
+
+el('files').addEventListener('change',e=>loadFiles(e.target.files));
+el('drop').addEventListener('dragover',e=>{e.preventDefault();el('drop').classList.add('over')});
+el('drop').addEventListener('dragleave',()=>el('drop').classList.remove('over'));
+el('drop').addEventListener('drop',e=>{e.preventDefault();el('drop').classList.remove('over');loadFiles(e.dataTransfer.files)});
+el('rerun').onclick=process;
+el('clear').onclick=()=>{
+  rawRows=[];children=[];weeklyEntries=[];summaryRows=[];
+  el('files').value='';
+  el('results').classList.add('hidden');
+  ['rerun','clear','downloadWeekly','downloadSummary','downloadAudit','print'].forEach(id=>el(id).disabled=true);
+  el('status').textContent='Cleared.';
+};
+el('downloadWeekly').onclick=()=>download('regpack-weekly-attendance-list.csv',weeklyCSV());
+el('downloadSummary').onclick=()=>download('regpack-weekly-attendance-summary.csv',summaryCSV());
+el('downloadAudit').onclick=()=>download('regpack-weekly-attendance-audit.csv',auditCSV());
+el('print').onclick=()=>window.print();
+['weekOneMonday','weekRange','weekMode','dupes','sortMode','locationMode','printMode','ignoreWords'].forEach(id=>el(id).addEventListener('change',()=>{if(rawRows.length)process()}));
+</script>
+</body>
+</html>
