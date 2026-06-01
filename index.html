@@ -10,17 +10,18 @@
       background: #f7f7f8;
       color: #18181b;
       margin: 0;
+      line-height: 1.45;
     }
 
     main {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 42px 18px;
     }
 
     h1 {
       margin: 0 0 8px;
-      font-size: 36px;
+      font-size: 38px;
       letter-spacing: -0.04em;
     }
 
@@ -45,15 +46,34 @@
       text-decoration: none;
       color: #18181b;
       box-shadow: 0 10px 28px rgba(0,0,0,.04);
+      transition: 0.12s ease;
     }
 
     .card:hover {
       border-color: #1f6feb;
+      transform: translateY(-2px);
     }
 
     .card h2 {
       margin: 0 0 8px;
       font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .card p {
+      margin: 0;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 10px;
+      background: #eef4ff;
+      color: #1f4ea8;
+      border: 1px solid #cfe0ff;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 700;
     }
 
     .note {
@@ -67,8 +87,13 @@
     }
 
     @media(max-width:700px) {
-      .grid { grid-template-columns: 1fr; }
-      h1 { font-size: 30px; }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
     }
   </style>
 </head>
@@ -78,24 +103,28 @@
     <p>Browser-based tools for processing Regpack CSV exports.</p>
 
     <div class="grid">
-      <a class="card" href="tshirt-counter.html">
-        <h2>T-Shirt Counter</h2>
-        <p>Upload Regpack CSV exports and total Youth Small, Medium, and Large shirt quantities.</p>
+      <a class="card" href="weekly-attendance-lists-daily-v2.html">
+        <span class="tag">Attendance</span>
+        <h2>Weekly Attendance Lists</h2>
+        <p>Upload locked weekly/daily registration exports, see weekly totals, and print alphabetized attendance lists.</p>
       </a>
 
       <a class="card" href="first-week-file-list.html">
+        <span class="tag">Files</span>
         <h2>First-Week File List</h2>
         <p>Upload summer registration exports and list each child under the first week they attend.</p>
       </a>
 
-      <a class="card" href="weekly-attendance-lists-daily-v2.html">
-        <h2>Weekly Attendance Lists</h2>
-        <p>Upload locked weekly registration exports and print alphabetized attendance lists for each week.</p>
+      <a class="card" href="tshirt-counter.html">
+        <span class="tag">T-Shirts</span>
+        <h2>T-Shirt Counter</h2>
+        <p>Upload Regpack CSV exports and total Youth Small, Medium, and Large shirt quantities.</p>
       </a>
     </div>
 
     <div class="note">
-      <strong>Privacy note:</strong> these tools run in your browser. CSV files are read locally on your device by the page and are not uploaded to a server.
+      <strong>Privacy note:</strong> these tools run in the browser. CSV files are read locally by the page and are not uploaded to a server.
+      Do not upload real Regpack CSV exports to GitHub.
     </div>
   </main>
 </body>
