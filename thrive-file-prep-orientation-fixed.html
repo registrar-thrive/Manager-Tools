@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Thrive File Prep</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#f7f7f8;--panel:#fff;--text:#18181b;--muted:#666672;--border:#dddde3;--accent:#1f6feb;--warn:#b42318;--ok:#0f7a3a}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0;line-height:1.45}
+main{max-width:1220px;margin:auto;padding:28px 16px 56px}
+h1{margin:0 0 8px;font-size:32px;letter-spacing:-.04em}
+h2{margin:0 0 8px}
+h3{margin:18px 0 8px}
+p{color:var(--muted);margin:0 0 12px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 8px 24px rgba(0,0,0,.04)}
+.drop{border:2px dashed var(--border);border-radius:14px;padding:24px;text-align:center;background:#fbfbfc;transition:.12s ease}
+.drop.over{border-color:var(--accent);background:#e8f0ff}
+.controls,.settings{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px}
+.field{min-width:165px;flex:1}
+.field.small-field{min-width:115px;flex:.6}
+label{display:block;font-size:13px;font-weight:700;color:var(--muted)}
+input,select{width:100%;box-sizing:border-box;margin-top:5px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+input[type="checkbox"]{width:auto}
+button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px}
+.card .label{font-size:13px;color:var(--muted)}
+.card .num{font-size:30px;font-weight:850;letter-spacing:-.04em}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+th,td{border-bottom:1px solid var(--border);padding:9px 10px;text-align:left;vertical-align:top;font-size:14px}
+th{background:#f1f1f4;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#4b4b55}
+.hidden{display:none}
+.small{font-size:13px;color:var(--muted)}
+.warn{color:var(--warn);font-weight:700}
+.ok{color:var(--ok);font-weight:700}
+code{background:#f0f0f2;border-radius:6px;padding:2px 5px}
+.scroll{max-height:650px;overflow:auto}
+.note{background:#fff8e8;border:1px solid #f1d28a;border-radius:12px;padding:12px;margin:12px 0;color:#5c4700}
+.goodnote{background:#eefaf2;border:1px solid #bfe8cb;border-radius:12px;padding:12px;margin:12px 0;color:#0f4f28}
+@media(max-width:950px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.field,.field.small-field{min-width:160px;flex:1}}
+</style>
+</head>
+<body>
+<main>
+<h1>Thrive File Prep <span style="font-size:14px;color:#666672;font-weight:600">auto-detect emergency cards</span></h1>
+<p>Upload Regpack ZIP files. Each ZIP should contain one child PDF and one child photo. The tool keeps only the required child-file sections, places the child photo, duplicates the emergency card pages, and exports finished PDFs.</p>
+<p class="small">Everything runs locally in your browser. ZIPs, PDFs, and photos are not uploaded anywhere by this tool.</p>
+<p class="small"><strong>Photo orientation fix:</strong> portrait and landscape phone photos are corrected from orientation metadata before being placed.</p>
+
+<section class="panel">
+  <div id="drop" class="drop">
+    <strong>Drop ZIP files here</strong>
+    <p>or choose files below. You can select all child ZIP files at once.</p>
+    <input id="files" type="file" accept=".zip,application/zip" multiple>
+  </div>
+
+  <div class="goodnote">
+    This version does <strong>not</strong> assume the Emergency Contact Card is on the same page every time.
+    It reads each PDF and detects pages containing <strong>Emergency Contact Card</strong>, so it still works when earlier pages move because parent responses are longer.
+  </div>
+
+  <h3>Sections to Keep</h3>
+  <div class="settings">
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#18181b;font-weight:600">
+      <input id="requiredSectionsOnly" type="checkbox" checked>
+      Only include required sections: Child Information, Permissions, Health and Safety, Emergency Contact Card, Additional Authorized Pick-ups / Alerts
+    </label>
+  </div>
+
+  <h3>Photo Placement</h3>
+  <div class="settings">
+    <div class="field">
+      <label>Photo Goes On</label>
+      <select id="photoTarget">
+        <option value="firstCardPage">First Emergency Contact Card page of each copy</option>
+        <option value="manualPage">Manual page number below</option>
+      </select>
+    </div>
+    <div class="field small-field">
+      <label>Manual Photo Page #</label>
+      <input id="photoPage" type="number" min="1" value="1">
+    </div>
+    <div class="field small-field">
+      <label>X from Left</label>
+      <input id="photoX" type="number" value="345">
+    </div>
+    <div class="field small-field">
+      <label>Y from Top</label>
+      <input id="photoY" type="number" value="140">
+    </div>
+    <div class="field small-field">
+      <label>Photo Width</label>
+      <input id="photoW" type="number" value="230">
+    </div>
+    <div class="field small-field">
+      <label>Photo Height</label>
+      <input id="photoH" type="number" value="195">
+    </div>
+    <div class="field">
+      <label>Fit Mode</label>
+      <select id="fitMode">
+        <option value="contain">Fit inside box, keep proportions</option>
+        <option value="stretch">Stretch to exact box</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings">
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#18181b;font-weight:600">
+      <input id="whiteBackground" type="checkbox" checked>
+      Add white background behind photo box
+    </label>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#18181b;font-weight:600">
+      <input id="drawBorder" type="checkbox">
+      Draw red photo border for testing
+    </label>
+  </div>
+
+  <h3>Emergency Contact Card Detection & Copies</h3>
+  <div class="settings">
+    <div class="field">
+      <label>Emergency Card Detection</label>
+      <select id="cardMode">
+        <option value="auto">Auto-detect Emergency Contact Card pages</option>
+        <option value="manual">Manual page numbers below</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Manual Emergency Card Page(s)</label>
+      <input id="cardPages" value="9-10">
+      <p class="small">Used only if manual mode is selected or auto-detect fails. Examples: <code>9-10</code>, <code>9,10</code>, <code>9-11</code>.</p>
+    </div>
+    <div class="field small-field">
+      <label>Total Copies of Card Set</label>
+      <input id="cardCopies" type="number" min="1" max="20" value="4">
+    </div>
+    <div class="field small-field">
+      <label>Max Card Pages</label>
+      <input id="maxCardPages" type="number" min="1" max="5" value="3">
+    </div>
+    <div class="field">
+      <label>Card Copy Order</label>
+      <select id="copyOrder">
+        <option value="collated">Collated: full card set x4 — A B C, A B C, A B C, A B C</option>
+        <option value="uncollated">Uncollated: first card page x4, then second card page x4</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings">
+    <div class="field">
+      <label>Output File Name</label>
+      <select id="nameMode">
+        <option value="zip">Use ZIP file name</option>
+        <option value="pdf">Use PDF file name</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="note">
+    For your workflow, keep <strong>Only include required sections</strong> turned on, keep <strong>Photo Goes On</strong> set to “First Emergency Contact Card page of each copy,” and keep <strong>Card Copy Order</strong> set to collated.
+    If the Emergency Contact Card is 2 pages and copies is 4, output becomes: A B, A B, A B, A B.
+    If it is 3 pages, it becomes: A B C, A B C, A B C, A B C.
+    The photo is stamped only on page A of each copy.
+  </div>
+
+  <div class="controls">
+    <button id="process" class="primary" disabled>Process ZIP files</button>
+    <button id="downloadAll" class="primary" disabled>Download all processed PDFs as ZIP</button>
+    <button id="clear" disabled>Clear</button>
+  </div>
+  <p id="status" class="small"></p>
+</section>
+
+<section id="results" class="hidden">
+  <div class="cards">
+    <div class="card"><div class="label">ZIPs Read</div><div id="zipCount" class="num">0</div></div>
+    <div class="card"><div class="label">PDFs Created</div><div id="pdfCount" class="num">0</div></div>
+    <div class="card"><div class="label">Skipped / Errors</div><div id="errorCount" class="num">0</div></div>
+    <div class="card"><div class="label">Card Copies Each</div><div id="copyCount" class="num">4</div></div>
+  </div>
+
+  <section class="panel">
+    <h2>Processed Files</h2>
+    <div id="resultTable"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Audit / Warnings</h2>
+    <div id="auditTable" class="scroll"></div>
+  </section>
+</section>
+</main>
+
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+let selectedFiles=[];
+let processed=[];
+let audit=[];
+
+const el=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+
+function sanitizeName(name){
+  return String(name||'processed')
+    .replace(/\.[^.]+$/,'')
+    .replace(/[\\/:*?"<>|]+/g,'-')
+    .replace(/\s+/g,' ')
+    .trim()
+    .slice(0,160) || 'processed';
+}
+
+function parsePageList(value){
+  const pages=new Set();
+  String(value||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(part=>{
+    const range=part.match(/^(\d+)\s*-\s*(\d+)$/);
+    if(range){
+      const a=parseInt(range[1],10), b=parseInt(range[2],10);
+      for(let i=Math.min(a,b); i<=Math.max(a,b); i++) pages.add(i);
+    } else {
+      const n=parseInt(part,10);
+      if(Number.isFinite(n) && n>0) pages.add(n);
+    }
+  });
+  return [...pages].sort((a,b)=>a-b);
+}
+
+function getSettings(){
+  return {
+    photoTarget: el('photoTarget').value,
+    photoPage: Math.max(1, parseInt(el('photoPage').value||'1',10)),
+    photoX: parseFloat(el('photoX').value||'0'),
+    photoY: parseFloat(el('photoY').value||'0'),
+    photoW: parseFloat(el('photoW').value||'100'),
+    photoH: parseFloat(el('photoH').value||'100'),
+    fitMode: el('fitMode').value,
+    whiteBackground: el('whiteBackground').checked,
+    drawBorder: el('drawBorder').checked,
+    requiredSectionsOnly: el('requiredSectionsOnly') ? el('requiredSectionsOnly').checked : true,
+    cardMode: el('cardMode').value,
+    cardPagesManual: parsePageList(el('cardPages').value),
+    cardCopies: Math.max(1, parseInt(el('cardCopies').value||'1',10)),
+    maxCardPages: Math.max(1, parseInt(el('maxCardPages').value||'3',10)),
+    copyOrder: el('copyOrder').value,
+    nameMode: el('nameMode').value
+  };
+}
+
+function fileFromZip(zip, regex){
+  const files=[];
+  zip.forEach((path, entry)=>{
+    if(!entry.dir && regex.test(path) && !/__MACOSX/i.test(path)) files.push(entry);
+  });
+  files.sort((a,b)=>a.name.localeCompare(b.name));
+  return files;
+}
+
+function downloadBlob(filename, blob){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+
+function table(headers, rows){
+  return '<table><thead><tr>'+headers.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+
+    (rows.length ? rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('') : `<tr><td colspan="${headers.length}">No rows.</td></tr>`) +
+    '</tbody></table>';
+}
+
+async function extractPageTexts(pdfBytes){
+  if(!window.pdfjsLib) throw new Error('PDF text engine did not load. Check internet connection and refresh.');
+  const loadingTask=pdfjsLib.getDocument({data:pdfBytes.slice(0)});
+  const pdf=await loadingTask.promise;
+  const texts=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    const text=content.items.map(item=>item.str).join(' ').replace(/\s+/g,' ').trim();
+    texts.push(text);
+  }
+  return texts;
+}
+
+function groupConsecutive(pageNumbers){
+  const groups=[];
+  let current=[];
+  pageNumbers.forEach(p=>{
+    if(!current.length || p===current[current.length-1]+1) current.push(p);
+    else { groups.push(current); current=[p]; }
+  });
+  if(current.length) groups.push(current);
+  return groups;
+}
+
+function isLikelyNewFormStart(text){
+  const t=String(text||'').toLowerCase();
+  const hardStarts=[
+    'waiver',
+    'release of liability',
+    'medical form',
+    'medication',
+    'authorized pickup form',
+    'registration form',
+    'payment',
+    'receipt',
+    'invoice',
+    't-shirt',
+    'photo release',
+    'field trip',
+    'behaviour agreement',
+    'behavior agreement'
+  ];
+  return hardStarts.some(s=>t.includes(s)) && !t.includes('emergency contact card');
+}
+
+function pageLooksEmergencyRelated(text){
+  const t=String(text||'').toLowerCase();
+  const signals=[
+    'emergency contact card',
+    'child information',
+    "child's full name",
+    'parent/guardian',
+    'emergency contact',
+    'authorized pickup',
+    'physician',
+    'bc care card',
+    'medical',
+    'allerg',
+    'health',
+    'pickup',
+    'guardian'
+  ];
+  return signals.some(s=>t.includes(s));
+}
+
+function detectEmergencyCardPages(pageTexts, maxCardPages){
+  // Find the first page that clearly starts an Emergency Contact Card.
+  const startCandidates=[];
+  pageTexts.forEach((text, idx)=>{
+    const t=String(text||'').toLowerCase();
+    if(t.includes('emergency contact card')){
+      startCandidates.push(idx+1);
+    }
+  });
+
+  if(!startCandidates.length) return [];
+
+  const startPage=startCandidates[0];
+  const pages=[startPage];
+
+  // First, include consecutive pages that explicitly say Emergency Contact Card.
+  for(let p=startPage+1; p<=pageTexts.length && pages.length<maxCardPages; p++){
+    const t=String(pageTexts[p-1]||'').toLowerCase();
+    if(t.includes('emergency contact card')) pages.push(p);
+    else break;
+  }
+
+  // If only the first page has the title, include following pages that look like
+  // continuation pages, up to Max Card Pages. This covers 2-page and 3-page cards
+  // when only page 1 repeats the title.
+  for(let p=startPage+pages.length; p<=pageTexts.length && pages.length<maxCardPages; p++){
+    const text=pageTexts[p-1]||'';
+    if(isLikelyNewFormStart(text)) break;
+    if(pageLooksEmergencyRelated(text) || pages.length < 2){
+      pages.push(p);
+    } else {
+      break;
+    }
+  }
+
+  return pages;
+}
+async function blobToUint8Array(blob){
+  const buffer = await blob.arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+function getJpegExifOrientation(bytes){
+  try{
+    if(!bytes || bytes.length < 4) return 1;
+    if(bytes[0] !== 0xFF || bytes[1] !== 0xD8) return 1;
+
+    let offset = 2;
+    while(offset < bytes.length){
+      if(bytes[offset] !== 0xFF) break;
+
+      const marker = bytes[offset + 1];
+      const length = (bytes[offset + 2] << 8) + bytes[offset + 3];
+
+      if(marker === 0xE1){
+        const exifStart = offset + 4;
+        const exifHeader = String.fromCharCode(
+          bytes[exifStart],
+          bytes[exifStart + 1],
+          bytes[exifStart + 2],
+          bytes[exifStart + 3]
+        );
+
+        if(exifHeader !== "Exif") return 1;
+
+        const tiff = exifStart + 6;
+        const little = bytes[tiff] === 0x49 && bytes[tiff + 1] === 0x49;
+
+        const get16 = pos => little
+          ? bytes[pos] + (bytes[pos + 1] << 8)
+          : (bytes[pos] << 8) + bytes[pos + 1];
+
+        const get32 = pos => little
+          ? bytes[pos] + (bytes[pos + 1] << 8) + (bytes[pos + 2] << 16) + (bytes[pos + 3] << 24)
+          : (bytes[pos] << 24) + (bytes[pos + 1] << 16) + (bytes[pos + 2] << 8) + bytes[pos + 3];
+
+        const firstIfdOffset = get32(tiff + 4);
+        const ifd = tiff + firstIfdOffset;
+        const entries = get16(ifd);
+
+        for(let i = 0; i < entries; i++){
+          const entry = ifd + 2 + i * 12;
+          const tag = get16(entry);
+
+          if(tag === 0x0112){
+            const orientation = get16(entry + 8);
+            return orientation >= 1 && orientation <= 8 ? orientation : 1;
+          }
+        }
+      }
+
+      offset += 2 + length;
+    }
+  }catch(err){
+    return 1;
+  }
+
+  return 1;
+}
+
+function applyExifOrientationTransform(ctx, orientation, rawWidth, rawHeight){
+  switch(orientation){
+    case 2:
+      ctx.transform(-1, 0, 0, 1, rawWidth, 0);
+      break;
+    case 3:
+      ctx.transform(-1, 0, 0, -1, rawWidth, rawHeight);
+      break;
+    case 4:
+      ctx.transform(1, 0, 0, -1, 0, rawHeight);
+      break;
+    case 5:
+      ctx.transform(0, 1, 1, 0, 0, 0);
+      break;
+    case 6:
+      ctx.transform(0, 1, -1, 0, rawHeight, 0);
+      break;
+    case 7:
+      ctx.transform(0, -1, -1, 0, rawHeight, rawWidth);
+      break;
+    case 8:
+      ctx.transform(0, -1, 1, 0, 0, rawWidth);
+      break;
+    default:
+      break;
+  }
+}
+
+async function normalizeImageForPdf(imageBytes, mimeType){
+  const isJpeg = /jpe?g/i.test(mimeType || "");
+  const orientation = isJpeg ? getJpegExifOrientation(imageBytes) : 1;
+  const sourceBlob = new Blob([imageBytes], {type: mimeType || "image/jpeg"});
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if("createImageBitmap" in window){
+    try{
+      const bitmap = await createImageBitmap(sourceBlob, {imageOrientation: "none"});
+      const rawWidth = bitmap.width;
+      const rawHeight = bitmap.height;
+
+      if(orientation >= 5 && orientation <= 8){
+        canvas.width = rawHeight;
+        canvas.height = rawWidth;
+      }else{
+        canvas.width = rawWidth;
+        canvas.height = rawHeight;
+      }
+
+      applyExifOrientationTransform(ctx, orientation, rawWidth, rawHeight);
+      ctx.drawImage(bitmap, 0, 0);
+
+      if(bitmap.close) bitmap.close();
+
+      const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      return await blobToUint8Array(pngBlob);
+    }catch(err){
+      // Fallback below.
+    }
+  }
+
+  // Fallback: many browsers display image elements upright automatically.
+  const url = URL.createObjectURL(sourceBlob);
+  try{
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = url;
+    });
+
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    ctx.drawImage(img, 0, 0);
+
+    const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    return await blobToUint8Array(pngBlob);
+  }finally{
+    URL.revokeObjectURL(url);
+  }
+}
+
+function drawPhoto(page, image, settings){
+  const { height: pageH } = page.getSize();
+  const x=settings.photoX;
+  const y=pageH - settings.photoY - settings.photoH;
+  const w=settings.photoW;
+  const h=settings.photoH;
+
+  if(settings.whiteBackground){
+    page.drawRectangle({x, y, width:w, height:h, color: PDFLib.rgb(1,1,1)});
+  }
+
+  let drawX=x, drawY=y, drawW=w, drawH=h;
+  if(settings.fitMode==='contain'){
+    const scale=Math.min(w/image.width, h/image.height);
+    drawW=image.width*scale;
+    drawH=image.height*scale;
+    drawX=x+(w-drawW)/2;
+    drawY=y+(h-drawH)/2;
+  }
+
+  page.drawImage(image,{x:drawX,y:drawY,width:drawW,height:drawH});
+
+  if(settings.drawBorder){
+    page.drawRectangle({x, y, width:w, height:h, borderColor: PDFLib.rgb(1,0,0), borderWidth:1});
+  }
+}
+
+async function copyPageWithOptionalPhoto(sourcePdf, outPdf, sourceIndexZero, shouldStampPhoto, embeddedImage, settings){
+  const [copied]=await outPdf.copyPages(sourcePdf,[sourceIndexZero]);
+  outPdf.addPage(copied);
+  if(shouldStampPhoto){
+    const outPage=outPdf.getPage(outPdf.getPageCount()-1);
+    drawPhoto(outPage,embeddedImage,settings);
+  }
+}
+
+
+function normalizedPageText(text){
+  return String(text||'').toLowerCase().replace(/\s+/g,' ').trim();
+}
+
+function isRequiredNonCardPage(text){
+  const t=normalizedPageText(text);
+
+  // Emergency Contact Card pages are handled separately because they need duplication and photo stamping.
+  if(t.includes('emergency contact card')) return false;
+
+  // Child information pages. Avoid catching Emergency Contact Card's internal "Child Information" heading.
+  if(
+    t.includes("child's information") ||
+    t.includes('child information form') ||
+    (t.includes('child information') && t.includes("child's first name"))
+  ){
+    return true;
+  }
+
+  // Permissions can span multiple pages, and Regpack usually repeats the title.
+  if(t.includes(': permissions') || t.includes(' permissions')){
+    return true;
+  }
+
+  // Health and Safety pages can span multiple pages.
+  if(
+    t.includes('health and safety information') ||
+    t.includes('health & safety information') ||
+    t.includes(': health and safety')
+  ){
+    return true;
+  }
+
+  // Additional Authorized Pick-ups / Allergies & Alerts.
+  // Avoid keeping blank continuation pages that only say "Skip this step".
+  const hasAdditionalPickupTitle =
+    t.includes('additional authorized pick-ups') ||
+    t.includes('additional authorized pickups') ||
+    t.includes('additional authorized pick ups');
+
+  if(hasAdditionalPickupTitle){
+    const hasUsefulPickupOrAlertInfo =
+      t.includes('parent(s) / primary guardians') ||
+      t.includes('authorized pick-up contact') ||
+      t.includes('authorized pickup contact') ||
+      t.includes('allergies & alerts') ||
+      t.includes('allergies and alerts') ||
+      t.includes('emergency medical allergies') ||
+      t.includes('custody agreement') ||
+      t.includes('photo permission') ||
+      t.includes('sunscreen');
+
+    if(hasUsefulPickupOrAlertInfo) return true;
+  }
+
+  return false;
+}
+
+function shouldIncludeSinglePage(pageNum, pageTexts, cardSet, settings){
+  if(cardSet.has(pageNum)) return false;
+  if(!settings.requiredSectionsOnly) return true;
+  return isRequiredNonCardPage(pageTexts[pageNum-1] || '');
+}
+
+async function processOneZip(file, settings){
+  const zip=await JSZip.loadAsync(file);
+  const pdfEntries=fileFromZip(zip,/\.pdf$/i);
+  const imageEntries=fileFromZip(zip,/\.(png|jpe?g)$/i);
+
+  if(!pdfEntries.length) throw new Error('No PDF found in ZIP.');
+  if(!imageEntries.length) throw new Error('No JPG/PNG photo found in ZIP.');
+
+  const pdfEntry=pdfEntries[0];
+  const imageEntry=imageEntries[0];
+
+  const pdfBytes=await pdfEntry.async('uint8array');
+  const imgBytes=await imageEntry.async('uint8array');
+
+  const pageTexts=await extractPageTexts(pdfBytes);
+  const sourcePdf=await PDFLib.PDFDocument.load(pdfBytes);
+  const pageCount=sourcePdf.getPageCount();
+
+  let detectedCardPages=[];
+  if(settings.cardMode==='auto'){
+    detectedCardPages=detectEmergencyCardPages(pageTexts, settings.maxCardPages);
+  }
+
+  let cardPages=detectedCardPages.length ? detectedCardPages : settings.cardPagesManual;
+  cardPages=cardPages.filter(p=>p>=1 && p<=pageCount);
+
+  if(!cardPages.length) throw new Error('Could not detect Emergency Contact Card pages, and no valid manual pages were provided.');
+
+  const firstCardPage=cardPages[0];
+  const manualPhotoPage=settings.photoPage;
+  const photoPage=settings.photoTarget==='firstCardPage' ? firstCardPage : manualPhotoPage;
+
+  if(photoPage>pageCount) throw new Error(`Photo page ${photoPage} is outside the PDF page count (${pageCount}).`);
+
+  const outPdf=await PDFLib.PDFDocument.create();
+  const imageMime=/\.png$/i.test(imageEntry.name) ? "image/png" : "image/jpeg";
+  const normalizedImageBytes=await normalizeImageForPdf(imgBytes, imageMime);
+  const embeddedImage=await outPdf.embedPng(normalizedImageBytes);
+  const firstCard=Math.min(...cardPages);
+  const lastCard=Math.max(...cardPages);
+  const cardSet=new Set(cardPages);
+
+  // Build the output in the original section order, but skip non-required sections when enabled.
+  // Required non-card sections are copied once. Emergency Contact Card pages are copied as full repeated sets.
+  for(let pageNum=1; pageNum<firstCard; pageNum++){
+    if(!shouldIncludeSinglePage(pageNum, pageTexts, cardSet, settings)) continue;
+    const stamp=settings.photoTarget==='manualPage' && pageNum===manualPhotoPage;
+    await copyPageWithOptionalPhoto(sourcePdf,outPdf,pageNum-1,stamp,embeddedImage,settings);
+  }
+
+  // Emergency card pages, duplicated.
+  if(settings.copyOrder==='uncollated'){
+    // A A A A, B B B B, C C C C
+    for(const pageNum of cardPages){
+      for(let c=0;c<settings.cardCopies;c++){
+        const stamp=settings.photoTarget==='firstCardPage' && pageNum===firstCardPage;
+        await copyPageWithOptionalPhoto(sourcePdf,outPdf,pageNum-1,stamp,embeddedImage,settings);
+      }
+    }
+  } else {
+    // A B C, A B C, A B C, A B C
+    for(let c=0;c<settings.cardCopies;c++){
+      for(const pageNum of cardPages){
+        const stamp=settings.photoTarget==='firstCardPage' && pageNum===firstCardPage;
+        await copyPageWithOptionalPhoto(sourcePdf,outPdf,pageNum-1,stamp,embeddedImage,settings);
+      }
+    }
+  }
+
+  for(let pageNum=lastCard+1; pageNum<=pageCount; pageNum++){
+    if(!shouldIncludeSinglePage(pageNum, pageTexts, cardSet, settings)) continue;
+    const stamp=settings.photoTarget==='manualPage' && pageNum===manualPhotoPage;
+    await copyPageWithOptionalPhoto(sourcePdf,outPdf,pageNum-1,stamp,embeddedImage,settings);
+  }
+
+  const outBytes=await outPdf.save();
+  const baseName=settings.nameMode==='pdf' ? sanitizeName(pdfEntry.name.split('/').pop()) : sanitizeName(file.name);
+  const outName=`${baseName}-prepared.pdf`;
+
+  const warnings=[
+    pdfEntries.length>1 ? `Multiple PDFs found; used ${pdfEntry.name}.` : '',
+    imageEntries.length>1 ? `Multiple images found; used ${imageEntry.name}.` : '',
+    !detectedCardPages.length && settings.cardMode==='auto' ? `Auto-detect failed; used manual pages ${cardPages.join(', ')}.` : '',
+    detectedCardPages.length ? `Detected Emergency Contact Card pages: ${detectedCardPages.join(', ')}.` : '',
+    `Photo stamped on first card page ${settings.photoTarget==='firstCardPage' ? firstCardPage + ' in each copy' : manualPhotoPage}.`
+  ].filter(Boolean);
+
+  return {
+    sourceZip:file.name,
+    pdfName:pdfEntry.name,
+    imageName:imageEntry.name,
+    outputName:outName,
+    pageCountBefore:pageCount,
+    pageCountAfter:outPdf.getPageCount(),
+    cardPages,
+    firstCardPage,
+    outputBytes:outBytes,
+    blob:new Blob([outBytes],{type:'application/pdf'}),
+    warnings
+  };
+}
+
+async function processAll(){
+  processed=[];
+  audit=[];
+  const settings=getSettings();
+
+  if(settings.cardMode==='manual' && !settings.cardPagesManual.length){
+    el('status').innerHTML='<span class="warn">Please enter at least one manual Emergency Contact Card page number.</span>';
+    return;
+  }
+
+  el('status').textContent=`Processing ${selectedFiles.length} ZIP file${selectedFiles.length===1?'':'s'}...`;
+  el('process').disabled=true;
+  el('downloadAll').disabled=true;
+
+  for(const file of selectedFiles){
+    try{
+      const result=await processOneZip(file,settings);
+      processed.push(result);
+      audit.push({file:file.name,status:'Processed',message:`Created ${result.outputName}. ${result.warnings.join(' ')}`});
+    }catch(err){
+      audit.push({file:file.name,status:'Error',message:err.message||String(err)});
+    }
+  }
+
+  render();
+  el('process').disabled=false;
+}
+
+function render(){
+  el('zipCount').textContent=selectedFiles.length;
+  el('pdfCount').textContent=processed.length;
+  el('errorCount').textContent=audit.filter(a=>a.status==='Error').length;
+  el('copyCount').textContent=el('cardCopies').value||'';
+
+  el('resultTable').innerHTML=table(
+    ['Output PDF','Source ZIP','PDF Used','Photo Used','Emergency Card Pages','Pages Before','Pages After','Download'],
+    processed.map((p,idx)=>[
+      esc(p.outputName),
+      esc(p.sourceZip),
+      esc(p.pdfName),
+      esc(p.imageName),
+      esc(p.cardPages.join(', ')),
+      String(p.pageCountBefore),
+      String(p.pageCountAfter),
+      `<button onclick="downloadProcessed(${idx})">Download PDF</button>`
+    ])
+  );
+
+  el('auditTable').innerHTML=table(
+    ['File','Status','Message'],
+    audit.map(a=>[
+      esc(a.file),
+      a.status==='Error' ? '<span class="warn">Error</span>' : '<span class="ok">Processed</span>',
+      esc(a.message)
+    ])
+  );
+
+  const has=selectedFiles.length>0;
+  el('results').classList.toggle('hidden',!has);
+  el('clear').disabled=!has;
+  el('downloadAll').disabled=processed.length===0;
+  el('status').innerHTML=processed.length
+    ? `<span class="ok">Done.</span> Created ${processed.length} PDF${processed.length===1?'':'s'}.`
+    : '<span class="warn">No PDFs were created.</span>';
+}
+
+window.downloadProcessed=function(idx){
+  const p=processed[idx];
+  if(p) downloadBlob(p.outputName,p.blob);
+}
+
+async function downloadAllZip(){
+  const zip=new JSZip();
+  processed.forEach(p=>zip.file(p.outputName,p.outputBytes));
+  const blob=await zip.generateAsync({type:'blob'});
+  downloadBlob('prepared-thrive-files.zip',blob);
+}
+
+function setFiles(files){
+  selectedFiles=[...files].filter(f=>/\.zip$/i.test(f.name) || f.type==='application/zip' || !f.type);
+  el('process').disabled=selectedFiles.length===0;
+  el('clear').disabled=selectedFiles.length===0;
+  el('downloadAll').disabled=true;
+  processed=[];
+  audit=[];
+  el('status').textContent=selectedFiles.length ? `${selectedFiles.length} ZIP file${selectedFiles.length===1?'':'s'} selected.` : 'Please choose at least one ZIP file.';
+  el('results').classList.add('hidden');
+}
+
+el('files').addEventListener('change',e=>setFiles(e.target.files));
+el('drop').addEventListener('dragover',e=>{e.preventDefault();el('drop').classList.add('over')});
+el('drop').addEventListener('dragleave',()=>el('drop').classList.remove('over'));
+el('drop').addEventListener('drop',e=>{e.preventDefault();el('drop').classList.remove('over');setFiles(e.dataTransfer.files)});
+el('process').addEventListener('click',processAll);
+el('downloadAll').addEventListener('click',downloadAllZip);
+el('clear').addEventListener('click',()=>{
+  selectedFiles=[]; processed=[]; audit=[];
+  el('files').value='';
+  el('process').disabled=true;
+  el('downloadAll').disabled=true;
+  el('clear').disabled=true;
+  el('results').classList.add('hidden');
+  el('status').textContent='Cleared.';
+});
+</script>
+</body>
+</html>
